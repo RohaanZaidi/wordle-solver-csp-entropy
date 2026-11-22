@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from csp import WordleCSP
-from game import NUM_PATTERNS, WIN_PATTERN, WordleGame
+from game import NUM_PATTERNS, WIN_PATTERN, WordleGame, build_pattern_matrix
 from wordlist import WordList
 
 NAN = float("nan")
@@ -79,6 +79,25 @@ class Agent:
         result.n_guesses = game.guesses_used
         result.csp_checks = csp.checks
         return result
+
+
+
+def weighted_entropies(pattern_matrix: np.ndarray, weights: np.ndarray, chunk: int = 256) -> np.ndarray:
+    """Entropy (bits) of every row of a [guess, candidate] pattern matrix when the
+    candidates are not equally likely: candidate j has probability weights[j] / sum(weights)."""
+    G, K = pattern_matrix.shape
+    weights = np.asarray(weights, dtype=np.float64)
+    total = weights.sum()
+    out = np.empty(G, dtype=np.float64)
+    for start in range(0, G, chunk):
+        block = pattern_matrix[start:start + chunk].astype(np.int64)
+        rows = block.shape[0]
+        flat = (block + np.arange(rows)[:, None] * NUM_PATTERNS).ravel()
+        counts = np.bincount(flat, weights=np.tile(weights, rows), minlength=rows * NUM_PATTERNS)
+        p = counts.reshape(rows, NUM_PATTERNS) / total
+        safe = np.where(p > 0, p, 1.0)
+        out[start:start + rows] = -(p * np.log2(safe)).sum(axis=1)
+    return out
 
 
 class RandomAgent(Agent):
@@ -158,6 +177,23 @@ class EntropyAgent(Agent):
         ent = self.entropies(candidates)
         order = np.lexsort((np.arange(len(ent)), -np.round(ent, 9)))[:top]
         return [(self.words.allowed[i], float(ent[i])) for i in order]
+
+    def rank_guesses_for(self, candidate_words: list[str], weights=None, top: int = 5) -> list[tuple[str, float]]:
+        """Best guesses when the possible answers are ANY list of words (not just the
+        official answers), optionally weighted by how likely each one is.
+
+        Used by the helper's "all valid words" mode. The pattern matrix is built on the
+        fly for these candidates, so it takes a few seconds when many words are left.
+        """
+        allowed = self.words.allowed
+        if len(candidate_words) == 1:
+            return [(candidate_words[0], 0.0)]
+        matrix = build_pattern_matrix(allowed, candidate_words)
+        w = np.ones(len(candidate_words)) if weights is None else np.asarray(weights, dtype=np.float64)
+        ent = weighted_entropies(matrix, w)
+        is_candidate = np.isin(np.array(allowed), np.array(candidate_words))
+        order = np.lexsort((np.arange(len(allowed)), ~is_candidate, -np.round(ent, 9)))[:top]
+        return [(allowed[i], float(ent[i])) for i in order]
 
     def choose_guess(self, candidates, history):
         answers = self.words.answers

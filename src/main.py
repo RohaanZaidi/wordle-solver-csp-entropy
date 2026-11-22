@@ -95,21 +95,42 @@ def watch_solver(words: WordList, cache_dir) -> None:
         print(f"\nNot solved in {game.max_guesses} guesses. The word was '{game.secret}'.")
 
 
+OTHER_WORD_WEIGHT = 0.1   # how likely a word outside the original answer list is, relative to one inside it
+
+
 def helper_mode(words: WordList, cache_dir) -> None:
     print("\nHelper mode: play your real Wordle and tell me what the colours were.")
     print("Enter feedback as five characters: g = green, y = yellow, x = grey (or 2 / 1 / 0).")
     print("Type 'q' at any prompt to go back to the menu.\n")
+    print("Which words may be the answer?")
+    print("  1  All valid words (default) - also finds answers outside the original Wordle list")
+    print("  2  Only the original 2,315 answers (matches the original game)")
+    wide = ask("Choice [1]: ") != "2"
     print("Preparing entropy tables (the first run takes a few seconds) ...")
     agent = EntropyAgent(words, cache_dir=cache_dir)
     csp = WordleCSP()
-    candidates = list(range(len(words.answers)))
+    in_answers = set(words.answers)
+    if wide:
+        pool = list(words.allowed)                      # candidate words (strings)
+        weights = [1.0 if w in in_answers else OTHER_WORD_WEIGHT for w in pool]
+        print(f"  {len(pool)} possible words; words outside the original answer list count "
+              f"{OTHER_WORD_WEIGHT:g}x as likely.\n")
+    else:
+        candidates = list(range(len(words.answers)))
+        pool = [words.answers[i] for i in candidates]
+        weights = [1.0] * len(pool)
     history: list = []
     while True:
-        ranked = agent.rank_guesses(candidates, top=5) if len(candidates) > 1 else \
-            [(words.answers[i], 0.0) for i in candidates]
-        suggestion = agent.choose_guess(candidates, history) if candidates else ""
-        if ranked:
-            print("Best guesses: " + ", ".join(f"{w} ({b:.2f} bits)" for w, b in ranked))
+        if not history:
+            ranked = agent.rank_guesses(list(range(len(words.answers))), top=5)   # best opening
+        elif wide:
+            print("  working out the best guesses ...")
+            ranked = agent.rank_guesses_for(pool, weights, top=5)
+        else:
+            idx = [words.answer_index[w] for w in pool]
+            ranked = agent.rank_guesses(idx, top=5) if len(idx) > 1 else [(pool[0], 0.0)]
+        suggestion = ranked[0][0]
+        print("Best guesses: " + ", ".join(f"{w} ({b:.2f} bits)" for w, b in ranked))
         guess = ask(f"Word you played [{suggestion}]: ").lower() or suggestion
         if guess == "q":
             return
@@ -126,17 +147,20 @@ def helper_mode(words: WordList, cache_dir) -> None:
             print("\nSolved!")
             return
         csp.add_feedback(guess, pattern)
-        before = len(candidates)
-        candidates = [i for i in candidates if csp.is_consistent(words.answers[i])]
+        before_weight = sum(weights)
+        kept = [(w, wt) for w, wt in zip(pool, weights) if csp.is_consistent(w)]
         history.append((guess, pattern))
-        after = len(candidates)
-        if after == 0:
-            print("\nNo word in my answer list fits all that feedback. Check the colours you entered, "
-                  "or the hidden word may be outside the official list.")
+        if not kept:
+            print("\nNo valid word fits all that feedback. Check the colours you entered.")
             return
-        gained = math.log2(before / after)
-        print(f"  {after} candidate{'s' if after != 1 else ''} left (gained {gained:.2f} bits): "
-              f"{show_candidates(words, candidates)}\n")
+        pool, weights = [w for w, _ in kept], [wt for _, wt in kept]
+        gained = math.log2(before_weight / sum(weights))
+        ordered = sorted(pool, key=lambda w: (w not in in_answers, w))        # original answers first
+        shown = ", ".join(w if w in in_answers else w + "*" for w in ordered[:12])
+        more = f", ... (+{len(pool) - 12} more)" if len(pool) > 12 else ""
+        note = "   (* = outside the original answer list)" if any(w not in in_answers for w in ordered[:12]) else ""
+        print(f"  {len(pool)} word{'s' if len(pool) != 1 else ''} left (gained {gained:.2f} bits): "
+              f"{shown}{more}{note}\n")
 
 
 def show_openers(words: WordList, cache_dir) -> None:

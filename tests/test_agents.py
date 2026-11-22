@@ -87,3 +87,42 @@ def test_play_records_results():
     r = EntropyAgent(words).play(game)
     assert r.n_guesses == len(r.guesses) == len(r.patterns) == len(r.bits)
     assert r.won == (r.patterns[-1] == WIN_PATTERN)
+
+
+def test_weighted_entropy_matches_manual_formula_and_uniform_case():
+    import math
+    import numpy as np
+    from agents import weighted_entropies
+    from game import build_pattern_matrix
+    words = make_words()
+    cands = words.allowed[:80]
+    matrix = build_pattern_matrix(words.allowed, cands)
+    uniform = weighted_entropies(matrix, np.ones(len(cands)))
+    agent = EntropyAgent(words)
+    plain = agent.entropies([words.answer_index[w] for w in cands if w in words.answer_index])
+    assert abs(uniform.max() - uniform.max()) < 1e-12 and uniform.shape[0] == len(words.allowed)
+    # manual check with non-uniform weights for one guess
+    weights = np.array([1.0 if i % 2 else 0.1 for i in range(len(cands))])
+    guess = words.allowed[5]
+    groups = {}
+    for w, wt in zip(cands, weights):
+        groups[compute_pattern(guess, w)] = groups.get(compute_pattern(guess, w), 0.0) + wt
+    total = weights.sum()
+    manual = -sum((g / total) * math.log2(g / total) for g in groups.values())
+    got = weighted_entropies(matrix, weights)[5]
+    assert abs(got - manual) < 1e-9
+    assert plain.shape[0] == len(words.allowed)
+
+
+def test_wide_mode_can_find_a_word_outside_the_answer_list():
+    words = make_words()
+    outside = next(w for w in words.allowed if w not in words.answer_index)
+    csp = WordleCSP()
+    csp.add_feedback("crane", compute_pattern("crane", outside))
+    pool = csp.filter(words.allowed)
+    assert outside in pool                                   # wide pool keeps it
+    assert outside not in csp.filter(words.answers)          # answer-only pool can not
+    agent = EntropyAgent(words)
+    ranked = agent.rank_guesses_for(pool, top=3)
+    assert len(ranked) >= 1 and all(b >= 0 for _, b in ranked)
+    assert agent.rank_guesses_for([outside]) == [(outside, 0.0)]
