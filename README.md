@@ -11,8 +11,10 @@ most about the answer. It is compared with a random-consistent baseline and a le
 
 | Member | Roll number | What they built |
 |---|---|---|
-| Leader: _name_ | _roll no._ | `game.py`, `wordlist.py`, `csp.py`, `RandomAgent`, README, repository |
-| Member 2: _name_ | _roll no._ | `EntropyAgent`, `FrequencyAgent`, `experiments.py`, `main.py` |
+| Leader: _Syed Muhammad Rohaan Zaidi_ | _24K-2027_ | Simulator, word lists, CSP engine, random agent |
+| Member 2: _-_ | _-_ | Entropy and frequency agents, experiments, charts, menu |
+
+**No member 2 exists so Member 1 will be handling all the tasks
 
 ## Setup
 
