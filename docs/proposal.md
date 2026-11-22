@@ -29,7 +29,7 @@
 | **Project Title**         | Wordle Solver with Constraints and Entropy                                      |
 | **Project Idea**          | Idea No. \_\_\_\_\_\_ from the Project Ideas list ☐ Own idea (needs approval) ☐ |
 | **Category**              | Part A — Game ☒ Part B — Applied / Data ☐                                       |
-| **GitHub Repository URL** |                                                                                 |
+| **GitHub Repository URL** | https://github.com/RohaanZaidi/wordle-solver-csp-entropy                        |
 | **Date of Submission**    |                                                                                 |
 
 # 1. Project Title and Summary
