@@ -11,10 +11,8 @@ most about the answer. It is compared with a random-consistent baseline and a le
 
 | Member | Roll number | What they built |
 |---|---|---|
-| Leader: _Syed Muhammad Rohaan Zaidi_ | _24K-2027_ | Simulator, word lists, CSP engine, random agent |
-| Member 2: _-_ | _-_ | Entropy and frequency agents, experiments, charts, menu |
-
-**No member 2 exists so Member 1 will be handling all the tasks
+| Leader: _name_ | _roll no._ | `game.py`, `wordlist.py`, `csp.py`, `RandomAgent`, README, repository |
+| Member 2: _name_ | _roll no._ | `EntropyAgent`, `FrequencyAgent`, `experiments.py`, `main.py` |
 
 ## Setup
 
@@ -44,7 +42,10 @@ The first run builds a 30 MB pattern table (about 5-10 seconds) and caches it in
 1. **Watch the solver** — pick an agent and a hidden word and see each guess in colour with the
    bits of information gained and the candidates left.
 2. **Helper** — type the word you played in the real game and its colours (`g` green, `y` yellow,
-   `x` grey), and get the best next guesses.
+   `x` grey), and get the best next guesses. By default every one of the 12,972 valid words may be
+   the answer (words outside the original 2,315-word answer list count 0.1x as likely, a tunable
+   assumption in `src/main.py`), so it still works when the real game's answer is not in the
+   original list; those words are marked `*`. Choose option 2 to use only the original answers.
 3. **Best openers** — the ten opening guesses with the highest entropy.
 
 ## How it works
@@ -99,8 +100,10 @@ never needs the network. If the download fails, save the two lists manually unde
 ## Known limitations
 
 - English five-letter words only; no connection to the live Wordle website.
-- Wordle itself can accept guesses outside the official list; helper mode only suggests words from it.
-- The hidden word is assumed to come from the 2,315-word answer list.
+- The experiments assume the hidden word comes from the original 2,315-word answer list. Helper mode
+  can look beyond it (default), but a word outside all 12,972 valid words would still not be found.
+- The 0.1 weight for words outside the original answer list is an assumption, not a measured value.
+- The word lists are from the original Wordle; today's live game may differ slightly.
 - Greedy one-step entropy is not the provably optimal strategy (that needs a full game-tree search).
 
 ## Repository layout
