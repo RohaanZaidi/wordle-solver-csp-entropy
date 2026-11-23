@@ -11,8 +11,8 @@ most about the answer. It is compared with a random-consistent baseline and a le
 
 | Member | Roll number | What they built |
 |---|---|---|
-| Leader: _name_ | _roll no._ | `game.py`, `wordlist.py`, `csp.py`, `RandomAgent`, README, repository |
-| Member 2: _name_ | _roll no._ | `EntropyAgent`, `FrequencyAgent`, `experiments.py`, `main.py` |
+| Leader: _Rohaan Zaidi_ | _24k-2027_ | `game.py`, `wordlist.py`, `csp.py`, `RandomAgent`, README, repository |
+| Member 2: _-_ | _-_ | `EntropyAgent`, `FrequencyAgent`, `experiments.py`, `main.py` |
 
 ## Setup
 
